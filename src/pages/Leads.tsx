@@ -5,15 +5,39 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { mockLeads } from '@/data/mockLeads';
-import { LeadStage, STAGE_LABELS } from '@/types/lead';
+import { Lead, LeadStage, LeadStatus, STAGE_LABELS } from '@/types/lead';
 import { ArrowRight, Mail, Phone, Globe } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Leads = () => {
+  const [leads, setLeads] = useState<Lead[]>(mockLeads);
   const [selectedStage, setSelectedStage] = useState<LeadStage | 'all'>('all');
 
+  const updateLeadStatus = (leadId: string, status: LeadStatus) => {
+    setLeads(prevLeads =>
+      prevLeads.map(lead =>
+        lead.id === leadId
+          ? { ...lead, status, updatedAt: new Date() }
+          : lead
+      )
+    );
+    toast.success(`Lead ${status === 'qualified' ? 'qualified' : 'rejected'} successfully`);
+  };
+
+  const moveLeadToNextStage = (leadId: string, nextStage: LeadStage) => {
+    setLeads(prevLeads =>
+      prevLeads.map(lead =>
+        lead.id === leadId
+          ? { ...lead, stage: nextStage, updatedAt: new Date() }
+          : lead
+      )
+    );
+    toast.success(`Lead moved to ${STAGE_LABELS[nextStage]}`);
+  };
+
   const filteredLeads = selectedStage === 'all' 
-    ? mockLeads 
-    : mockLeads.filter(lead => lead.stage === selectedStage);
+    ? leads 
+    : leads.filter(lead => lead.stage === selectedStage);
 
   const stages: Array<{ value: LeadStage | 'all'; label: string }> = [
     { value: 'all', label: 'All Leads' },
@@ -53,8 +77,8 @@ const Leads = () => {
                     {stage.label}
                     <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded-full">
                       {stage.value === 'all' 
-                        ? mockLeads.length 
-                        : mockLeads.filter(l => l.stage === stage.value).length}
+                        ? leads.length 
+                        : leads.filter(l => l.stage === stage.value).length}
                     </span>
                   </TabsTrigger>
                 ))}
@@ -125,17 +149,31 @@ const Leads = () => {
                               </TableCell>
                               <TableCell className="text-right">
                                 {lead.status === 'qualified' && nextStage && (
-                                  <Button size="sm" variant="outline">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => moveLeadToNextStage(lead.id, nextStage)}
+                                  >
                                     Move to {STAGE_LABELS[nextStage]}
                                     <ArrowRight className="ml-2 h-3 w-3" />
                                   </Button>
                                 )}
                                 {lead.status === 'pending' && (
                                   <div className="flex gap-2 justify-end">
-                                    <Button size="sm" variant="outline" className="text-success border-success hover:bg-success hover:text-success-foreground">
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="text-success border-success hover:bg-success hover:text-success-foreground"
+                                      onClick={() => updateLeadStatus(lead.id, 'qualified')}
+                                    >
                                       Qualify
                                     </Button>
-                                    <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                      onClick={() => updateLeadStatus(lead.id, 'disqualified')}
+                                    >
                                       Reject
                                     </Button>
                                   </div>
